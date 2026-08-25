@@ -1,0 +1,66 @@
+@startuml
+skinparam sequenceMessageAlign center
+autonumber
+
+actor Cittadino
+participant "App Mobile" as App
+participant "API Gateway" as Gateway
+participant "Gestore Segnalazioni" as ReportMgr
+participant "Elaboratore IA" as AI
+database "Database Centrale" as DB
+
+== Fase 1: Prevenzione Duplicati ==
+Cittadino -> App: Avvia nuova segnalazione
+App -> App: Acquisisce coordinate GPS
+App -> Gateway: GET /api/segnalazioni/vicine (GPS)
+activate Gateway
+
+Gateway -> ReportMgr: Instrada richiesta
+activate ReportMgr
+ReportMgr -> DB: Query segnalazioni "Aperte" in zona
+activate DB
+DB --> ReportMgr: Lista risultati
+deactivate DB
+ReportMgr --> Gateway: Restituisce payload dati
+deactivate ReportMgr
+
+Gateway --> App: Restituisce payload dati
+deactivate Gateway
+
+alt Segnalazioni presenti nel raggio
+    App --> Cittadino: Mostra alert duplicati
+    Cittadino -> App: Conferma di procedere comunque
+else Nessuna segnalazione
+    App -> App: Passaggio automatico diretto
+end
+
+== Fase 2: Validazione, IA e Salvataggio ==
+Cittadino -> App: Scatta foto e invia
+App -> Gateway: POST /api/segnalazioni (foto, GPS)
+activate Gateway
+
+Gateway -> ReportMgr: Instrada richiesta
+activate ReportMgr
+
+ReportMgr -> DB: Verifica timestamp ultimo invio utente
+activate DB
+DB --> ReportMgr: Nessuna violazione timeout
+deactivate DB
+
+ReportMgr -> AI: Richiesta offuscamento dati sensibili
+activate AI
+AI --> ReportMgr: Restituisce Foto Sfocata (Privacy OK)
+deactivate AI
+
+ReportMgr -> DB: Salva nuova segnalazione
+activate DB
+DB --> ReportMgr: Conferma e ID Segnalazione
+deactivate DB
+
+ReportMgr --> Gateway: 201 Created (Successo)
+deactivate ReportMgr
+
+Gateway --> App: 201 Created (Successo)
+deactivate Gateway
+App --> Cittadino: Mostra notifica di successo
+@enduml

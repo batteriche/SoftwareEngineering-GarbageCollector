@@ -1,0 +1,51 @@
+@startuml
+skinparam sequenceMessageAlign center
+autonumber
+
+actor "Sensori Cassonetti" as Sensore
+participant "Telemetry Gateway" as Gateway
+database "Database Centrale" as DB
+participant "Gestore Segnalazioni" as Segnalazioni
+
+== Acquisizione Dati in Tempo Reale ==
+
+Sensore -> Gateway: Invia Telemetria (ID, Riempimento %, Batteria %)
+activate Gateway
+Gateway -> DB: Aggiorna stato cassonetto e Timestamp
+activate DB
+DB --> Gateway: Conferma aggiornamento
+deactivate DB
+
+alt Batteria < 5%
+    Gateway -> Segnalazioni: Invia trigger anomalia (ID Sensore, "Batteria Scarica")
+    activate Segnalazioni
+    Segnalazioni -> DB: Crea nuova Segnalazione Automatica (Stato: Aperta)
+    activate DB
+    DB --> Segnalazioni: Conferma salvataggio
+    deactivate DB
+    Segnalazioni --> Gateway: Segnalazione creata con successo
+    deactivate Segnalazioni
+end
+deactivate Gateway
+
+== Controllo Schedulato Offline (Ogni ora) ==
+
+Gateway -> DB: Query: Trova sensori con ultimo aggiornamento > 12 ore
+activate Gateway
+activate DB
+DB --> Gateway: Restituisce lista Sensori Offline
+deactivate DB
+
+loop Per ogni sensore offline
+    Gateway -> Segnalazioni: Invia trigger anomalia (ID Sensore, "Sensore Offline")
+    activate Segnalazioni
+    Segnalazioni -> DB: Crea nuova Segnalazione Automatica (Stato: Aperta)
+    activate DB
+    DB --> Segnalazioni: Conferma salvataggio
+    deactivate DB
+    Segnalazioni --> Gateway: Segnalazione creata con successo
+    deactivate Segnalazioni
+end
+deactivate Gateway
+
+@enduml

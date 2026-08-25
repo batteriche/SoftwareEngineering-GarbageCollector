@@ -1,0 +1,33 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+
+actor "Cittadino" as Cittadino
+actor "Sistema SPID/CIE" as SPID <<External System>>
+
+rectangle "Sottosistema App Cittadino" {
+    usecase "Effettuare Login (RF1)" as UC_Login
+    usecase "Consultare Calendario (RF2)" as UC_Calendario
+    usecase "Ricevere Notifiche Push (RF10)" as UC_Notifiche
+    usecase "Visualizzare Mappa (RF3)" as UC_Mappa
+    usecase "Download Mappe Offline (RF11)" as UC_Offline
+    usecase "Inviare Segnalazione (RF4)" as UC_Segnalazione
+    usecase "Prevenzione Duplicati (RF5)" as UC_Duplicati
+    usecase "Limitazione Frequenza/Timeout (RF12)" as UC_Rate
+    usecase "Oscurare Dati Sensibili con IA (RF6)" as UC_IA
+}
+
+Cittadino --> UC_Login
+UC_Login -- SPID
+
+Cittadino --> UC_Calendario
+Cittadino --> UC_Notifiche
+Cittadino --> UC_Mappa
+UC_Mappa <.. UC_Offline : <<extend>>
+
+Cittadino --> UC_Segnalazione
+UC_Segnalazione ..> UC_IA : <<include>>
+UC_Segnalazione ..> UC_Duplicati : <<include>>
+UC_Segnalazione ..> UC_Rate : <<include>>
+
+@enduml

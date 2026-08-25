@@ -1,0 +1,30 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+
+actor "Operatore Ecologico" as Operatore
+actor "Sensore Cassonetto" as Sensore <<Hardware>>
+actor "API Routing" as API_Route <<External System>>
+
+rectangle "Sottosistema Dashboard e Backend" {
+    usecase "Effettuare Login (RF1)" as UC_Login
+    usecase "Visualizzare Statistiche (RF9)" as UC_Statistiche
+    usecase "Gestire Stato Segnalazioni (RF9)" as UC_Gestione
+    usecase "Inviare Avvisi Straordinari (RF10)" as UC_Avvisi
+    usecase "Acquisire Telemetria (RF7)" as UC_Sensori
+    usecase "Calcolare Percorsi Ottimizzati (RF8)" as UC_Percorsi
+}
+
+Operatore --> UC_Login
+Operatore --> UC_Statistiche
+Operatore --> UC_Gestione
+Operatore --> UC_Avvisi
+Operatore --> UC_Percorsi
+
+Sensore --> UC_Sensori
+
+' Il calcolo dei percorsi ha bisogno dei dati dei sensori
+UC_Percorsi ..> UC_Sensori : <<include>>
+UC_Percorsi -- API_Route
+
+@enduml

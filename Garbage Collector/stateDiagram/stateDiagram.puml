@@ -1,0 +1,32 @@
+@startuml
+skinparam state {
+  BackgroundColor LightBlue
+  BorderColor Blue
+}
+
+[*] --> InCompilazione : Cittadino preme "Nuova Segnalazione"
+
+state InCompilazione {
+  [*] --> AcquisizioneGPS
+  AcquisizioneGPS --> ControlloDuplicati : Coordinate rilevate
+  ControlloDuplicati --> ScattoFoto : Nessun duplicato / Conferma
+  ScattoFoto --> ElaborazioneIA : Foto acquisita
+  ElaborazioneIA --> [*] : Dati pronti per invio
+}
+
+InCompilazione --> SospesaOffline : Assenza Rete
+SospesaOffline --> ControlloTimeout : Ripristino Rete
+
+InCompilazione --> ControlloTimeout : Rete disponibile
+
+state ControlloTimeout <<choice>>
+ControlloTimeout --> Aperta : [Utente NON in Timeout]
+ControlloTimeout --> Rifiutata : [Utente in Timeout] (Blocco Antispam)
+
+Aperta --> InLavorazione : Presa in carico dall'operatore
+
+InLavorazione --> Chiusa : Intervento completato / Risolto
+
+Chiusa --> [*]
+Rifiutata --> [*]
+@enduml

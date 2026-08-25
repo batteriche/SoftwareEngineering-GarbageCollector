@@ -1,0 +1,63 @@
+@startuml
+top to bottom direction
+
+package "Client Sottosistemi" {
+    [App Mobile Cittadino] as App
+    [Dashboard Web Operatore] as WebApp
+}
+
+package "Backend Sottosistemi" {
+    [API Gateway] as Gateway
+    [Gestore Autenticazione] as Auth
+    [Gestore Segnalazioni] as ReportMgr
+    [Elaboratore IA Privacy] as AI
+    [Telemetry Gateway] as IoT
+    [Routing Engine] as Routing
+    [Gestore Notifiche] as NotificheMgr
+}
+
+database "Database Centrale" as DB
+
+node "Sistemi Esterni" {
+    [Sistema SPID/CIE] as SPID
+    [API Ottimizzazione Percorsi] as MapsAPI
+}
+
+node "Hardware" {
+    [Sensori Cassonetti] as Sensors
+}
+
+' Forzatura layout
+"Client Sottosistemi" -[hidden]down-> "Backend Sottosistemi"
+
+"Backend Sottosistemi" -[hidden]down-> DB
+"Backend Sottosistemi" -[hidden]down-> "Sistemi Esterni"
+"Backend Sottosistemi" -[hidden]down-> "Hardware"
+
+' Allinea orizzontalmente i 3 blocchi inferiori (da sinistra a destra)
+DB -[hidden]right-> "Sistemi Esterni"
+"Sistemi Esterni" -[hidden]right-> "Hardware"
+
+
+App --> Gateway : HTTPS/REST
+WebApp --> Gateway : HTTPS/REST
+
+Gateway --> Auth
+Gateway --> ReportMgr
+Gateway --> Routing
+Gateway --> IoT
+Gateway --> NotificheMgr
+
+Auth --> SPID : Auth
+ReportMgr --> AI : Invia Foto
+ReportMgr --> DB : Salva/Leggi Segnalazioni
+Routing --> MapsAPI : Richiesta calcolo
+Routing --> DB : Legge Dati Telemetria
+IoT --> DB : Salva Dati Sensori
+NotificheMgr --> DB : Legge Calendario
+
+' Frecce orientate verso l'alto per rispettare il posizionamento dei blocchi
+Sensors -up-> IoT :
+NotificheMgr -up-> App : Invia Notifiche Push
+
+@enduml

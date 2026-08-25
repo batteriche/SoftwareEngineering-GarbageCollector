@@ -1,0 +1,162 @@
+@startuml
+skinparam classAttributeIconSize 0
+skinparam monochrome false
+skinparam packageStyle rectangle
+
+' --- CONTROLLERS ---
+package "Controllers (API Boundary)" {
+  class AuthController {
+    + loginSPID(token: String): Response
+  }
+  class SegnalazioneController {
+    + creaSegnalazione(dto: DTO): Response
+  }
+  class RoutingController {
+    + avviaOttimizzazione(turno: DateTime): Response
+  }
+  class NotificaController {
+    + inviaAvviso(testo: String, zona: String): Response
+  }
+}
+
+' --- SERVICES ---
+package "Services (Business Logic)" {
+  class AuthService {
+    + validaIdentita(token: String): Utente
+  }
+  class SegnalazioneService {
+    + processaNuovaSegnalazione(dati: DTO): Segnalazione
+    + checkDuplicati(gps: Coordinate): List<Segnalazione>
+  }
+  class IAPrivacyService {
+    + offuscaDatiSensibili(img: Foto): Foto
+  }
+  class RoutingService {
+    + calcolaPercorso(mezzi: List): PercorsoOttimizzato
+  }
+  class NotificaService {
+    + inviaPromemoriaAutomatici(): void
+  }
+}
+
+' --- DOMAIN ENTITIES ---
+package "Domain Entities" {
+
+  ' ENUMS
+  enum StatoSegnalazione {
+    IN_COMPILAZIONE
+    SOSPESA_OFFLINE
+    APERTA
+    IN_LAVORAZIONE
+    CHIUSA
+    RIFIUTATA
+  }
+  enum TipoNotifica {
+    PROMEMORIA
+    AVVISO_STRAORDINARIO
+  }
+  enum TipoRifiuto {
+    PLASTICA, CARTA, VETRO, ORGANICO, SECCO, SPECIALE
+  }
+
+  ' CLASSI
+  abstract class Utente {
+    # id: UUID
+    # email: String
+  }
+  class Cittadino {
+    - codiceFiscale: String
+    - ultimoInvio: DateTime
+  }
+  class OperatoreEcologico {
+    - matricola: String
+  }
+  
+  class Segnalazione {
+    - id: UUID
+    - coordinateGPS: Coordinate
+    + aggiornaStato(): void
+  }
+  class Foto {
+    - pathGrezza: String
+    - pathOffuscata: String
+  }
+  
+  class Cassonetto {
+    - id: String
+    - gps: Coordinate
+    - capacitaMax: int
+  }
+  class SensoreTelemetria {
+    - livelloRiempimento: double
+    - livelloBatteria: double
+    - ultimoAggiornamento: DateTime
+    + checkFaultTolerance(): boolean
+  }
+  
+  class PercorsoOttimizzato {
+    - distanzaKm: double
+    - tempoMin: int
+  }
+  
+  class NotificaPush {
+    - testo: String
+  }
+  class CalendarioRaccolta {
+    - data: Date
+    - zona: String
+  }
+  class Rifiuto {
+    - nome: String
+  }
+}
+
+' --- EXTERNAL INTERFACES ---
+package "External Interfaces" {
+  interface ISpidCIEAPI {
+    + verificaToken(token: String): boolean
+  }
+  interface IGoogleMapsAPI {
+    + optimizeRoute(waypoints: List): JsonRoute
+  }
+}
+
+' --- RELAZIONI ARCHITETTURALI ---
+AuthController ..> AuthService
+SegnalazioneController ..> SegnalazioneService
+RoutingController ..> RoutingService
+NotificaController ..> NotificaService
+
+AuthService ..> ISpidCIEAPI
+RoutingService ..> IGoogleMapsAPI
+SegnalazioneService ..> IAPrivacyService
+
+' --- RELAZIONI DI DOMINIO E USO ---
+Utente <|-- Cittadino
+Utente <|-- OperatoreEcologico
+
+AuthService ..> Utente : restituisce >
+SegnalazioneService "1" --> "*" Segnalazione : gestisce >
+IAPrivacyService ..> Foto : elabora >
+RoutingService ..> Cassonetto : legge >
+NotificaService ..> NotificaPush : genera >
+NotificaService ..> CalendarioRaccolta : interroga >
+
+Segnalazione "1" *-- "1" Foto : contiene >
+Cittadino "1" -- "*" Segnalazione : crea >
+OperatoreEcologico "1" -- "*" Segnalazione : lavora >
+OperatoreEcologico "1" -- "*" PercorsoOttimizzato : richiede >
+OperatoreEcologico "1" -- "*" NotificaPush : genera >
+
+Cassonetto "1" *-- "1" SensoreTelemetria : monta >
+
+' --- COLLEGAMENTI ENUMS ---
+Cassonetto "*" -up- "1" TipoRifiuto
+Rifiuto "*" -up- "1" TipoRifiuto
+CalendarioRaccolta "*" -up- "1" TipoRifiuto
+Segnalazione "*" -left- "1" StatoSegnalazione
+NotificaPush "*" -up- "1" TipoNotifica
+
+PercorsoOttimizzato "1" -- "*" Cassonetto : svuota >
+PercorsoOttimizzato "1" -- "*" Segnalazione : risolve >
+@enduml

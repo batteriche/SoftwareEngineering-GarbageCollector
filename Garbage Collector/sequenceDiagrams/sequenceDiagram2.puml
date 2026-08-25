@@ -1,0 +1,49 @@
+@startuml
+skinparam sequenceMessageAlign center
+autonumber
+
+actor "Operatore Ecologico" as Operatore
+participant "Dashboard Web" as Web
+participant "API Gateway" as Gateway
+participant "Routing Engine" as Route
+database "Database Centrale" as DB
+participant "API Esterna (Mappe)" as Maps
+
+Operatore -> Web: Richiede calcolo percorsi mezzi
+Web -> Gateway: GET /api/percorsi/ottimizzati
+activate Gateway
+
+Gateway -> Route: Instrada richiesta
+activate Route
+
+== Aggregazione Dati Interni ==
+Route -> DB: Recupera stato sensori e telemetrie
+activate DB
+DB --> Route: Lista cassonetti urgenti/pieni
+deactivate DB
+
+Route -> DB: Recupera coordinate segnalazioni "Aperte"
+activate DB
+DB --> Route: Lista waypoint abbandono rifiuti
+deactivate DB
+
+== Calcolo e Risoluzione ==
+Route -> Route: Aggrega waypoint logistici
+Route -> Maps: POST /optimize (Waypoint, vincoli mezzi)
+activate Maps
+Maps --> Route: Restituisce JSON percorsi stradali
+deactivate Maps
+
+Route -> DB: Salva log percorsi generati
+activate DB
+DB --> Route: Conferma salvataggio
+deactivate DB
+
+Route --> Gateway: Restituisce mappa percorsi
+deactivate Route
+
+Gateway --> Web: Restituisce mappa percorsi
+deactivate Gateway
+
+Web --> Operatore: Visualizza itinerario ottimizzato
+@enduml

@@ -1,0 +1,59 @@
+@startuml
+skinparam sequenceMessageAlign center
+autonumber
+
+actor "Operatore Ecologico" as Operatore
+participant "Dashboard Web" as Web
+participant "API Gateway" as Gateway
+participant "Gestore Notifiche" as NotifMgr
+database "Database Centrale" as DB
+participant "App Mobile" as App
+actor Cittadino
+
+== Fase 1: Invio Manuale Avviso Straordinario ==
+Operatore -> Web: Compila e invia avviso straordinario
+Web -> Gateway: POST /api/notifiche/avviso (Testo, Zona)
+activate Gateway
+
+Gateway -> NotifMgr: Instrada richiesta
+activate NotifMgr
+
+NotifMgr -> DB: Salva avviso nello storico notifiche
+activate DB
+DB --> NotifMgr: Conferma salvataggio
+deactivate DB
+
+NotifMgr -> App: Invia notifica push broadcast
+activate App
+App --> Cittadino: Mostra notifica su smartphone
+deactivate App
+
+NotifMgr --> Gateway: 200 OK (Notifiche Inviate)
+deactivate NotifMgr
+
+Gateway --> Web: 200 OK (Notifiche Inviate)
+deactivate Gateway
+Web --> Operatore: Conferma invio notifica a schermo
+
+== Fase 2: Promemoria Automatico Schedulato ==
+note over NotifMgr: Trigger automatico schedulato\n(es. ogni giorno alle ore 20:00)
+activate NotifMgr
+
+NotifMgr -> DB: Query: Rifiuto in raccolta per la giornata di domani
+activate DB
+DB --> NotifMgr: Lista tipologie rifiuti e zone
+deactivate DB
+
+NotifMgr -> DB: Query: Recupera token dispositivi utenti attivi
+activate DB
+DB --> NotifMgr: Elenco token/ID destinatari
+deactivate DB
+
+NotifMgr -> App: Invia notifica push promemoria ("Stasera esporre: Plastica")
+activate App
+App --> Cittadino: Mostra promemoria su smartphone
+deactivate App
+
+deactivate NotifMgr
+
+@enduml
